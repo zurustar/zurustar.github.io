@@ -1,0 +1,70 @@
+
+<HTML>
+<HEAD>
+<TITLE>Windows95 OSR2以降のマシンでのnamazuのインストール</TITLE>
+</HEAD>
+<BODY>
+
+<center>
+<P>
+<b>Windows95 OSR2以降のマシンでのnamazuのインストール</b>
+</P>
+</center>
+
+<dl>
+
+<P>
+
+<dt><u>そもそもnamazuとは？</u><BR>
+<dd>全文検索をするソフトです。私の環境ではこれでうまくいきましたが、あなたの環境でうまくいくことを保証するものではありません。
+</P>
+
+<P>
+<dt><u>用意するもの</u><BR>
+<dd>ActivePerl<BR>
+kakasi<BR>
+namazu<BR>
+を用意する。<BR>
+すべて以下のサイトからダウンロードできます。<BR>
+<A HREF="http://www.namazu.org/windows/">http://www.namazu.org/windows/</A><BR>
+</P>
+
+<P>
+<dt><u>インストール</u><BR>
+<dd>で、続いてダウンロードしたものをインストールします。<br>
+ActivePerlをインストールする。いわれるがままに。<br>
+kakasiを展開し、kakasiディレクトリがC:\の直下にくるようにファイルを移動する。<br>
+namazuを展開する。インストールプログラムを実行して言われるがままにする。<br>
+これでインストール完了です。
+</p>
+
+<P>
+<dt><u>設定</u><BR>
+<dd>次に検索のための設定です。<br>
+mknmz -O C:\namazu\var\namazu\index C:\<br>
+とか打ってください。mknmzは検索用のインデックスを作り出すコマンドです。<br>
+-Oは検索に用いるインデックスファイルを出力するディレクトリを指定するためのオプションで、それに続くディレクトリ名（ここではC:\namazu\var\namazu\index）に検索用インデックスが出力されます。最後のC:\はC:\配下のすべてのファイルを対象としてインデックスを生成することをあらわしています。
+</p>
+
+<P>
+<dt><u>つかう</u><BR>
+<dd>これで<br>
+namazu 検索キーワード<br>
+で指定したディレクトリ配下のファイルを検索できるようになります。<br>
+CGIも用意されているので、HTTPDを起動してCGIで（まるでWebのサーチエンジンであるかのように）検索することも可能です。
+</p>
+
+</dl>
+
+
+<hr width="70%">
+<center>
+<a href="./index.html">もどる</a><br>
+<a href="../">トップページ</a><br>
+</center>
+<hr>
+
+</BODY>
+</html>
+
+

@@ -1,0 +1,165 @@
+
+<html>
+<head>
+<title>TCP/IPのお勉強</title>
+</head>
+
+<body text="#000066" link="#0000ff" alink="#ff0000" vlink="#0000ff">
+
+
+<p>
+<font size=+1>■ T C P / I P の お 勉 強 ■</font>
+</p>
+
+
+
+■IP(v4)のパケットの構造<br>
+中になにがはいっているのかを見ればなんとかなにかが見えるのではないかと思うわけです。なので、見てみるです。
+
+<table border=1>
+
+
+<tr align="center">
+<td>0</td><td>1</td><td>2</td><td>3</td><td>4</td>
+<td>5</td><td>6</td><td>7</td><td>8</td><td>9</td>
+<td>10</td><td>11</td><td>12</td><td>13</td><td>14</td>
+<td>15</td><td>16</td><td>17</td><td>18</td><td>19</td>
+<td>20</td><td>21</td><td>22</td><td>23</td><td>24</td>
+<td>25</td><td>26</td><td>27</td><td>28</td><td>29</td>
+<td>30</td><td>31</td>
+</tr>
+
+<tr align=center>
+<td colspan=4>Version</td>
+<td colspan=4>IHL</td>
+<td colspan=8>Type Of Service</td>
+<td colspan=16>Total Length</td>
+</tr>
+
+<tr align=center>
+<td colspan=16>Identification</td>
+<td colspan=3>Flags</td>
+<td colspan=13>Flagment Offset</td>
+</tr>
+
+<tr align=center>
+<td colspan=8>Time To Live</td>
+<td colspan=8>Protocol</td>
+<td colspan=16>Header Checksum</td>
+</tr>
+
+<tr align=center>
+<td colspan=32>Source Address</td>
+</tr>
+
+<tr align=center>
+<td colspan=32>Destination Address</td>
+</tr>
+
+<tr align=center>
+<td colspan=32>Options  +  Padding</td>
+</tr>
+
+<tr align=center>
+<td colspan=32>Data</td>
+</tr>
+
+
+</table>
+というわけでひとつひとつなんなのかを見てみます。<br>
+
+<p>
+・Version<br>
+IPヘッダのバージョン番号を示す。で、ここではIPv4の構造を示しているので、当然、ここの値は4になります。v6だったら当然6ね。
+</p>
+
+<p>
+・IHL(Internet Header Length)<br>
+IPヘッダの大きさをオクテットで示す。オプションがない場合はIPパケットは5オクテットになるので、ここにくる値は5になるわけでございます。
+</p>
+
+<p>
+・Type Of Service<br>
+IPのサービスの品質なんだそうです。この中で各ビットにさらに意味があって、0-2ビット目が優先度、3ビット目が最低限の遅延、4ビット目が最大限のスループット、5ビット目が最大限の信頼性、6ビット目が最小限の経費、7ビット目は未使用となっているようです。なーんかよくわかりませんが、その実現の難しさから現在のインターネットではほとんど利用されていないそうです。
+</p>
+
+
+<p>
+・Total Length<br>
+IPヘッダとIPデータを足したパケット全体の長さ（オクテット）をあらわすようです。で、ここが16ビットなので、IPが転送可能なパケットの最大サイズは65535オクテットになるようです。
+</p>
+
+<p>
+・Identification<br>
+フラグメント（＝データを分割したときのその断片）を復元するときの識別子で、同じフラグメントでは同じ値になるように処理されるのだそうです。
+</p>
+
+<p>
+・Flags<br>
+3ビットのうち、1ビット目は0固定、2ビット目は分割していいかどうかをあらわすフラグで0で分割可能、1で分割不可、3ビット目は分割されたパケットの場合に最後のパケットかどうかを表す(0が最後のフラグメントパケット、1が途中のフラグメントパケット)。
+</p>
+
+<p>
+・Fragment Offset<br>
+分割されたフラグメントが元データのどこにあったかをあらわす。
+</p>
+
+<p>
+・Time To Live<br>
+何個のルーターを中継してよいのかを意味するもので、ルーターをとおるたびにこの値はひとつづつ減らされていき、0になったらそのパケットは破棄される。
+</p>
+
+<p>
+・Protocol<br>
+上位のプロトコルが何なのかを示す値。いろいろあるけど、TCPだと6、UDPだと17、OSPFだと89等々。
+</p>
+
+<p>
+・Header Checksum<br>
+その名のとおり（っていうかわかる人には全部その名のとおりだよね）、チェックサム。16ビット単位で1の補数の和を求め、求まった値の1の補数をチェックサムフィールドに入れる。らしい。
+</p>
+
+<p>
+・Source Address<br>
+送信元のIPアドレス。
+</p>
+
+<p>
+・Destination Address<br>
+送信先のIPアドレス。
+</p>
+
+<p>
+・Options<br>
+可変長でテストやデバッグに使われるもの（つまり通常は使われない）。
+</p>
+
+<p>
+・Padding<br>
+上記OptionsにこのPaddingを足した長さが32ビットの整数倍になるように、0の羅列でデータを埋める。
+</p>
+
+<p>
+・Data<br>
+データ。
+</p>
+
+<p>
+とまぁ、IP(v4)のヘッダはこんな感じですね。なんかわかった気になりますね。ならない？
+</p>
+
+
+
+<p>
+今後の予定。<br>
+TCPのヘッダ/UDPのヘッダ/IPのいろいろな機器について/サブネットマスクってなんやねん/デフォルトゲートウェイってなんやねん/IPv6のヘッダ<br>
+って感じですかねぇ。
+</p>
+
+<hr width="70%">
+<center><a href="../">もどる</a></center>
+
+</body>
+</html>
+
+

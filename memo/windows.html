@@ -1,0 +1,391 @@
+
+<html>
+<head><title>Windowsプログラミング</title></head>
+
+<body text="#000066" link="#0000ff" alink="#ff0000" vlink="#0000ff">
+
+<center>
+
+<b>Windowsでのゲーム開発を目指して</b>
+
+<table border=0 width=80%><tr><td>
+
+<hr width=7 size=7>
+
+<u>はじめに</u><br>
+私もかつてはゲームを作りたいなどと志したこともあったわけですが、ビジネス用に作られているような気がしてならないWindowsだとどうもやりにくいような気がしてならないんですね。まぁDirectXを使えばすべては済む気もしますが、いろんなもんをインストールしなきゃいけなかったりビデオカードによってどうも動作が違うように思えてならなかったりするわけで、そんなわけで、Windows系のOSに標準で入っている機能でなんとかならないものかと思うわけでございます。で、調べる次第であります。
+
+<hr width=7 size=7>
+
+<u>必要なモノ</u><br>
+ゲームを作る上で何があればよいかを考えてみます。で、以下のようなものがある気がします。当然、コンパイラ等もいりますが、それは省略。ちなみに私はここのテスト用にBorland C++ Compiler 5.5.1を使用しております。なにしろ無料ですからね。あああ、話がそれましたが、ともかく、以下のようなものがある気がします。
+<p>
+0.そもそも一般的なWindowsのプログラミングができなきゃいけない。<br>
+1.ウインドウの大きさを設定<br>
+2.キー＆マウスの入力を受ける<br>
+3.描画<br>
+4.高精度なタイマー<br>
+5.複数の音の同時再生<br>
+</p>
+
+とまぁそんなわけでこういったことを考えていってみます。超超超超初歩のような気はしますが、私が初心者なもんで、暖かく見守っていただければとおもうわけでございます。
+
+<hr width=7 size=7>
+
+<u>そもそも一般的なWindowsのプログラミングができなきゃいけない。</u><br>
+とまぁ解説を書こうかとも思いましたが、この領域に関してはほかにすばらしいホームページが山のようにあるのでそちらに譲ります。（私のお勧めは<a href="http://users-web1.iac.ne.jp/~yasutaka/c_lang/">猫でもわかるプログラミング</a>です。）が、ここからの解説を書く上で最低限のスケルトンくらいはここに載せておいたほうがいいかなーと思いますので、ちょろっと書きます。これがすばらしいものかどうかは別なわけですが、、<br>
+と、はじめはここにソースを書いていたのですが、ここより後でいろいろ変更を加えた後のものをもう一度書いたのでここでは消しておきますー
+
+
+<hr width=7 size=7>
+
+<u>ウインドウの大きさを設定</u><br>
+さて、ここでできたウインドウの大きさなのですが、周りの枠などの余計な部分も足して計算されています。しかし実際にゲームを行う領域はクライアント領域であり、たとえば640x480の大きさの画像を背景としたい場合はWindow全体ではなくてこのクライアント領域に画像がぴったり収まらないと困りますね。これすなわちクライアント領域の大きさを元にしてウインドウを作らなきゃいけないですね。で、その方法ですが、CreateWindowでウインドウを作る場合はAdjustWindowRectを、CreateWindowExでウインドウを作る場合はAdjustWindowRectExを用いればよいようです。以下のような宣言になっているようです。
+<pre>
+BOOL AdjustWindowRect(
+  LPRECT lpRect, // クライアント領域の左上と右下の座標が入ったRECT構造体へのポインタ
+  DWORD dwStyle, // ウインドウのスタイル
+  BOOL bMenu // ウインドウがメニューを持つかどうか
+);
+
+
+BOOL AdjustWindowRectEx(
+  LPRECT lpRect, // クライアント領域の左上と右下の座標が入ったRECT構造体へのポインタ
+  DWORD dwStyle, // ウインドウのスタイル
+  BOOL bMenu, // ウインドウがメニューを持つかどうか
+  DWORD dwExStyle // 拡張スタイル
+);
+</pre>
+
+このdwStyleはCreateWindowのdwStyleと一致されてばよいみたいですね。では実際に使ってみます。
+
+<pre>
+    RECT r;
+    r.left=0;
+    r.top=0;
+    r.right=640;
+    r.bottom=480;
+    AdjustClientRect(&r,WS_OVERLAPPEDWINDOW,FALSE);
+    hWnd = CreateWindow(szClassName,
+            "ウインドウのタイトル",//タイトルバーにこの名前が表示されます
+            WS_OVERLAPPEDWINDOW,    //ウィンドウの種類
+            CW_USEDEFAULT,    //Ｘ座標
+            CW_USEDEFAULT,    //Ｙ座標
+            r.right-r.left,    //幅
+            r.bottom-r.top,    //高さ
+            NULL,    //親ウィンドウのハンドル、親を作るときはNULL
+            NULL,    //メニューハンドル、クラスメニューを使うときはNULL
+            hCurInst,    //インスタンスハンドル
+            NULL);
+</pre>
+
+というわけで画面のサイズがばっちり決まりました。<br>
+せっかくなので続いて画面中央に表示する方法も考えてみたいと思います。まぁこれはどうでもいい気もしますが、一応。<br>
+上の方法でウインドウ自体の大きさはわかっています。ので、画面の大きさがわかればCreateWindowのときの第４引数と第５引数でそのウインドウのX座標とY座標が指定できますね。というわけで、画面の大きさを調べる方法です。<br>
+SystemParametersInfoなる関数の第一引数にSPI_GETWORKAREAを指定するか、GetSystemMetricsでSM_CXFULLSCREENおよびSM_CYFULLSCREENを指定すればよいようです。違いとしては、SystemParametersInfoのほうはタスクバーの大きさを除くという点のようです。<br>
+どっちにしようかな～と思うところなわけですが、タスクバーを巨大にしていたらどーすんねん、と思ったのでGetSystemMetricsを使ってみます。
+
+<pre>
+
+int GetSystemMetrics(
+  int nIndex // system metric or configuration setting to retrieve
+);
+
+</pre>
+
+で、ここのnIndexにSM_CXFULLSCREENを指定すれば画面の幅が、SM_CYFULLSCREEN画面の高さが返ってきます。ということで使ってみましょう。
+
+<pre>
+    RECT r;
+    r.left=0;
+    r.top=0;
+    r.right=640;
+    r.bottom=480;
+    AdjustClientRect(&r,WS_OVERLAPPEDWINDOW,FALSE);
+    hWnd = CreateWindow(szClassName,
+            "ウインドウのタイトル",//タイトルバーにこの名前が表示されます
+            WS_OVERLAPPEDWINDOW,    //ウィンドウの種類
+            (GetSystemMetrics(SM_CXFULLSCREEN)-(r.right-r.left))/2,   //Ｘ座標
+            (GetSystemMetrics(SM_CYFULLSCREEN)-(r.bottom-r.top))/2,   //Ｙ座標
+            r.right-r.left,    //幅
+            r.bottom-r.top,    //高さ
+            NULL,    //親ウィンドウのハンドル、親を作るときはNULL
+            NULL,    //メニューハンドル、クラスメニューを使うときはNULL
+            hCurInst,    //インスタンスハンドル
+            NULL);
+</pre>
+
+実行してみた感じ（見た目で）あってる気がするのでこれでいいでしょう。ちゃんとチェックしないでいいのかーーー<br>
+
+　<br>
+
+あああっ！ここで気づいたんですけど（っていうか本当に作りながらいきあたりばたりに書いてるのがばればれなんですが）、このウインドウ、最大化できちゃいますね、、せっかくがんばって画面サイズ決めたのに画面の大きさ変えられるんじゃ意味ないじゃないですかっ。ということでここを直します。<br>
+で、方法なのですが、CreateWindowで指定したWS_OVERLAPPEDWINDOWが(WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_MINIMIZEBOX | WS_MAXIMIZEBOX)と同値のようですね。ここでWS_MAXIMIZEBOXが最大化のボタンを示しているので、これを除いたものに変更すればいいわけですね。<br>
+というわけで、ここまでのをまとめて、Windowsプログラムのスケルトン的に以下にソースを書いておきます。
+
+<pre>
+#include &lt;windows.h&gt;
+
+//Windowメッセージを処理する部分
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+    switch (msg) {
+        case WM_CLOSE:
+            DestroyWindow(hWnd);
+            break;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        default:
+            return (DefWindowProc(hWnd, msg, wp, lp));
+    }
+    return 0;
+}
+
+//main部分
+int WINAPI WinMain(HINSTANCE hCurInst, HINSTANCE hPrevInst,
+                                    LPSTR lpsCmdLine, int nCmdShow)
+{
+    MSG msg;
+    WNDCLASSEX wc;
+    HWND hWnd;
+    RECT clientrect;
+
+    const char szClassName[] = "test";    //ウィンドウクラス
+
+    hPrevInst;//使用しないことに対するwarningを防ぐ
+    lpsCmdLine;//使用しないことに対するwarningを防ぐ
+    
+    //WINDOWCLASSの初期化
+    wc.cbSize = sizeof(WNDCLASSEX);
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = WndProc;    //プロシージャ名
+    wc.cbClsExtra = 0;
+    wc.cbWndExtra = 0;
+    wc.hInstance = hCurInst;    //インスタンス
+    wc.hIcon = LoadIcon(NULL, IDI_APPLICATION);
+    wc.hCursor = LoadCursor(NULL, IDC_ARROW);
+    wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
+    wc.lpszMenuName = NULL;    //メニュー名
+    wc.lpszClassName = (LPCSTR)szClassName;
+    wc.hIconSm = LoadIcon(NULL, IDI_APPLICATION);
+
+    //登録
+    if(!RegisterClassEx(&wc)){
+        return FALSE;
+    }
+
+    clientrect.left=0;
+    clientrect.top=0;
+    clientrect.right=640;
+    clientrect.bottom=480;
+
+    //第２引数はCreateWIndowの第３引数と同じにする。
+    AdjustWindowRect(&clientrect,WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,FALSE);
+
+    //Windowを作る
+    hWnd = CreateWindow(szClassName,
+            "ウインドウのタイトル",//タイトルバーにこの名前が表示されます
+            WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+            (GetSystemMetrics(SM_CXFULLSCREEN)
+                -(clientrect.right-clientrect.left))/2, //Ｘ座標
+            (GetSystemMetrics(SM_CYFULLSCREEN)
+                -(clientrect.bottom-clientrect.top))/2, //Ｙ座標
+            clientrect.right-clientrect.left,    //幅
+            clientrect.bottom-clientrect.top,    //高さ
+            NULL,    //親ウィンドウのハンドル、親を作るときはNULL
+            NULL,    //メニューハンドル、クラスメニューを使うときはNULL
+            hCurInst,    //インスタンスハンドル
+            NULL);
+    if (!hWnd)
+        return FALSE;
+    ShowWindow(hWnd, nCmdShow);
+    UpdateWindow(hWnd);
+
+    //メッセージ受信のループ
+    while (GetMessage(&msg, NULL, 0, 0)) {
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
+    }
+    return msg.wParam;
+}
+</pre>
+
+<hr width=7 size=7>
+
+<u>キー＆マウスの入力を受ける</u><br>
+キー入力やマウス入力といったイベントを受ける関数はWNDCLASS構造体のlpfnWndProcというメンバに渡せばよいことはすでにご存知かと思います。で、その関数の第２引数の値がメッセージの種別になっているので、こいつに応じて処理を分ければ良いわけですね。で、どんなときにどんなメッセージが入っているのかを以下に示します。
+<p>
+WM_KEYDOWN：キーが押された<br>
+WM_KEYUP：キーがあがった（押されて離された）<br>
+WM_LBUTTONDBLCLK：マウスの左ボタンがダブルクリックされた<br>
+WM_LBUTTONDOWN：マウスの左ボタンが押された<br>
+WM_LBUTTONUP：マウスの左ボタンがあがった<br>
+WM_RBUTTONDBLCLK：マウスの右ボタンがダブルクリックされた<br>
+WM_RBUTTONDOWN：マウスの右ボタンが押された<br>
+WM_RBUTTONUP：マウスの右ボタンがあがった<br>
+WM_MOUSEMOVE：マウスが動いた
+</p>
+
+第２引数に入ってくるメッセージの種類にはほかにも山のようにありますが、キーとマウスに関する主なものには上記のようなものがあるわけです。<br>
+とまぁ、これでそれらイベントが発生したことはわかるのですが、キーが押されたらどのキーが押されたのかは知りたいし、マウスだったらどこの座標なのか知りたいですよね。これらの情報は第３引数と第４引数に入っております。
+
+<p>
+WM_KEYDOWNとWM_KEYUP<br>
+第３引数：押されたキーの仮想キーコード<br>
+第４引数：、、、面倒なのでヘルプを見てください、、
+</p>
+
+<p>
+マウス関連<br>
+第３引数：他の同時に押されていたキー<br>
+第４引数：x座標（下位２バイト）とy座標（上位２バイト）
+</p>
+
+WNDCLASS構造体のlpfnWndProcに以下のような関数を指定してみます。と、クリックされた座標がメッセージボックスに表示されます。
+
+<pre>
+LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp)
+{
+    switch (msg) {
+        case WM_LBUTTONUP:
+            {
+                int xpos=LOWORD(lp);
+                int ypos=HIWORD(lp);
+                char tmp[256];
+                sprintf(tmp,"x=[%d] y=[%d]",xpos,ypos);
+                MessageBox(NULL,tmp,NULL,MB_OK);
+            }
+            break;
+        case WM_CLOSE:
+            DestroyWindow(hWnd);
+            break;
+        case WM_DESTROY:
+            PostQuitMessage(0);
+            break;
+        default:
+            return (DefWindowProc(hWnd, msg, wp, lp));
+    }
+    return 0;
+}
+</pre>
+
+とりあえずこれでユーザーの入力が受けれますね。よかったよかった。
+
+<hr width=7 size=7>
+<u>描画</u><br>
+さてさて、ついに画像です。画像が表示できないとゲーム的にはいまいちですね。まぁ線や文字だけで済ますというsimple is the best的な考え方もあるでしょうが、せめて画像くらい表示したい気がしてならないので、します。<br>
+適当にヘルプを眺めてると（ホントか？）、LoadBitmapというのとLoadImageというのが見つかりました。なんか使えるかな？という期待をさせる名前ですね。というわけで本当に使えるかどうか見てみます。<br>
+まずLoadBitmapのほう。
+
+<pre>
+HBITMAP LoadBitmap(
+  HINSTANCE hInstance, // handle to application instance
+  LPCTSTR lpBitmapName // address of bitmap resource name
+);
+</pre>
+
+hInstanceでリソースを含むインスタンスを指定し、lpBitmapNameでリソース名を指定すればビットマップのハンドルが返ってくるようですね。<br>
+次にLoadImageのほうですが、
+
+<pre>
+HANDLE LoadImage(
+  HINSTANCE hinst, // handle of the instance that contains the image
+  LPCTSTR lpszName, // name or identifier of image
+  UINT uType, // type of image
+  int cxDesired, // desired width
+  int cyDesired, // desired height
+  UINT fuLoad // load flags
+);
+</pre>
+
+hinstでリソースを含むインスタンスを指定して、lpszNameで名称orIDを指定し、uTypeでどんなイメージなのか（ビットマップかカーソルかアイコンか）を指定、cxDesiredとcyDesiredで画像の幅とたかさ、fuLoadでいろんなもん（なんやねんそれ）を指定するようですね。<br>
+で、、、といろいろ書こうかと思ったのですが、次の「高速な描画」のところに重なる部分が多々あるので、まとめて次へいっちゃいます。てへ。
+
+
+<hr width=7 size=7>
+<u>高速な描画</u><br>
+このあたりからは私も全然知らない領域です、、調べながら書きます。ここまではなんとなくは知っていたんですけどね。<br>
+さてさて、DirectXだといろいろ制約があるような気がしてならないので、いや、まぁ、たいしたことない制約ともいえるかもしれないのですが、個人的になんとなくDirectXがあまり好きでないのでDIBを使いたいですね。だったらWindowsでゲーム作るなよ！という気もしますが、個人レベルで比較的容易にゲーム開発が行えて、かつ多くの人に遊んでもらえるとなるとやはりWindowsでつくらざるをえないですからね。で、そのDIBですが、かつてはWinGと呼ばれていたようです。<br>
+
+CreateDIBSectionを調べてみます。
+<pre>
+
+HBITMAP CreateDIBSection(
+  HDC hdc,          //デバイスコンテキストへのハンドル
+  CONST BITMAPINFO *pbmi,
+                    // ビットマップのサイズ、フォーマット、色情報を含む
+                    //構造体へのポインタ
+  UINT iUsage,      // 色情報種別表示：RGB値もしくはパレットインデックス
+  VOID *ppvBits,    // ビットマップのビット値へのポインタを受けるための
+                    // 変数へのポインタ
+  HANDLE hSection,  // ファイルマッピングオブジェクトへのハンドル（オプション）
+  DWORD dwOffset    // ファイルマッピングオブジェクト内の
+                    //ビットマップビット値へのオフセット
+);
+</pre>
+
+ここで渡すBITMAPINFOの内容を適切に埋めてやって渡せばいいのかな。ってことでBITMAPINFOを調べてみましょう。
+
+<pre>
+typedef struct tagBITMAPINFO {
+    BITMAPINFOHEADER    bmiHeader;
+    RGBQUAD             bmiColors[1];
+} BITMAPINFO;
+</pre>
+
+がー。またBITMAPINFOHEADERとかRGBQUADとかいうわけわかんないのが出てきやがったのでそれも調べましょう。
+
+<pre>
+typedef struct tagBITMAPINFOHEADER{ // bmih 
+    DWORD  biSize; 
+    LONG   biWidth; 
+    LONG   biHeight; 
+    WORD   biPlanes; 
+    WORD   biBitCount; 
+    DWORD  biCompression; 
+    DWORD  biSizeImage; 
+    LONG   biXPelsPerMeter; 
+    LONG   biYPelsPerMeter; 
+    DWORD  biClrUsed; 
+    DWORD  biClrImportant; 
+} BITMAPINFOHEADER; 
+</pre>
+
+<pre>
+typedef struct tagRGBQUAD { // rgbq 
+    BYTE    rgbBlue; 
+    BYTE    rgbGreen; 
+    BYTE    rgbRed; 
+    BYTE    rgbReserved; 
+} RGBQUAD; 
+</pre>
+
+
+ちなみに<br>
+BYTE 符号なし8ビット<br>
+WORD 符号なし16ビット<br>
+DWORD 符号なし32ビット<br>
+LONG 符号あり32ビット<br>
+ですね。
+
+
+
+
+
+
+</td></tr></table>
+
+<p><font color="#ff0000">余談：私が公開しているしょーもないフリーソフトたちはここにある知識は一切使わずに作っていたりします。</font></p>
+
+
+<hr width=80%>
+
+<a href="../">../index.html</a>
+
+<hr>
+</center>
+
+
+</body>
+</html>
